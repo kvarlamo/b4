@@ -131,6 +131,47 @@ def iperf_test(results):
 #    for res in results:
 #        print("%s.%s -> %s.%s : %s %s/%s rcvd" % (res['src_ns'], res['src_ip'], res['dst_ns'], res['dst_ip'], res['pingresult'], res['pingrx'], res['pingtx'])) 
     
+def http_test(results):
+    print("ASYNCRONOUS PING TESTS START")
+    for res in results:
+        print("%s.%s -> %s.%s" % (res['src_ns'], res['src_ip'], res['dst_ns'], res['dst_ip']))
+        try:
+            proc=subprocess.Popen("bash -c \"ip netns exec %s ping -c 10 -i 1 -q -I %s %s &> %s \"" % (res['src_ns'], res['src_ip'], res['dst_ip'],res['file']), shell=True)
+            res['proc']=proc
+        except subprocess.CalledProcessError as e:
+            print("ERR")
+    print("ASYNCRONOUS PING TESTS POLLING")
+    still_work = 1
+    while (still_work):
+        still_work=0
+        for res in results:
+            if 'proc' in res.keys():
+                poll_result = res['proc'].poll()
+                if poll_result in [0,1]:
+                    res.pop('proc')
+                    if poll_result == 0:
+                        poll_descr = "OK"
+                    else:
+                        poll_descr = "ERR"
+                    res['pingresult'] = poll_descr
+                    print("%s.%s -> %s.%s finished: %s" % (res['src_ns'], res['src_ip'], res['dst_ns'], res['dst_ip'], poll_descr))
+                else:
+                    still_work=1
+                    time.sleep(0.1)
+    print("ASYNCRONOUS PING TESTS: STATS")
+    for res in results:
+        f = open(res['file'], 'r')
+        stats=f.read()
+        os.remove(res['file'])
+        m = re.search(r'(\d+) packets transmitted, (\d+) received,.+(\d+)\% packet loss', stats)
+        if m:
+            print(m)
+            res['pingtx'] = m.group(1)
+            res['pingrx'] = m.group(2)
+            res['pingloss'] = m.group(3)
+    for res in results:
+        print("%s.%s -> %s.%s : %s %s/%s rcvd" % (res['src_ns'], res['src_ip'], res['dst_ns'], res['dst_ip'], res['pingresult'], res['pingrx'], res['pingtx'])) 
+    
 def check_gw(sut):
     print ("CHECKING DEFAULT GW BY ARP PROBE")
     for ns in sut:
