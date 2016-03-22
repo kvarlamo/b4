@@ -83,15 +83,23 @@ def ping_async_test(results):
         print("%s.%s -> %s.%s : %s %s/%s rcvd" % (res['src_ns'], res['src_ip'], res['dst_ns'], res['dst_ip'], res['pingresult'], res['pingrx'], res['pingtx'])) 
     
 def iperf_test(results):
-    print("ASYNCRONOUS PING TESTS START")
+    print("IPERF TESTS: START SERVERS ON EACH NODE")
+    ns=[]
+    servers=[]
+    for res in results:
+        if res['src_ns'] not in ns:
+            ns.append(res['src_ns'])
+    for ins in ns:
+        proc=subprocess.Popen("bash -c \"ip netns exec %s iperf -s\"" % ins, shell=True)
+        servers.append(proc)
     for res in results:
         print("%s.%s -> %s.%s" % (res['src_ns'], res['src_ip'], res['dst_ns'], res['dst_ip']))
         try:
-            proc=subprocess.Popen("bash -c \"ip netns exec %s ping -c 10 -i 1 -q -I %s %s &> %s \"" % (res['src_ns'], res['src_ip'], res['dst_ip'],res['file']), shell=True)
+            proc=subprocess.Popen("bash -c \"ip netns exec %s iperf -B %s -c %s -o %s \"" % (res['src_ns'], res['src_ip'], res['dst_ip'],res['file']), shell=True)
             res['proc']=proc
         except subprocess.CalledProcessError as e:
             print("ERR")
-    print("ASYNCRONOUS PING TESTS POLLING")
+    print("IPERF POLLING")
     still_work = 1
     while (still_work):
         still_work=0
@@ -109,19 +117,19 @@ def iperf_test(results):
                 else:
                     still_work=1
                     time.sleep(0.1)
-    print("ASYNCRONOUS PING TESTS: STATS")
-    for res in results:
-        f = open(res['file'], 'r')
-        stats=f.read()
-        os.remove(res['file'])
-        m = re.search(r'(\d+) packets transmitted, (\d+) received,.+(\d+)\% packet loss', stats)
-        if m:
-            print(m)
-            res['pingtx'] = m.group(1)
-            res['pingrx'] = m.group(2)
-            res['pingloss'] = m.group(3)
-    for res in results:
-        print("%s.%s -> %s.%s : %s %s/%s rcvd" % (res['src_ns'], res['src_ip'], res['dst_ns'], res['dst_ip'], res['pingresult'], res['pingrx'], res['pingtx'])) 
+#    print("ASYNCRONOUS PING TESTS: STATS")
+#    for res in results:
+#        f = open(res['file'], 'r')
+#        stats=f.read()
+#        os.remove(res['file'])
+#        m = re.search(r'(\d+) packets transmitted, (\d+) received,.+(\d+)\% packet loss', stats)
+#        if m:
+#            print(m)
+#            res['pingtx'] = m.group(1)
+#            res['pingrx'] = m.group(2)
+#            res['pingloss'] = m.group(3)
+#    for res in results:
+#        print("%s.%s -> %s.%s : %s %s/%s rcvd" % (res['src_ns'], res['src_ip'], res['dst_ns'], res['dst_ip'], res['pingresult'], res['pingrx'], res['pingtx'])) 
     
 def check_gw(sut):
     print ("CHECKING DEFAULT GW BY ARP PROBE")
@@ -147,7 +155,8 @@ def main():
     sut=discover_sut()
     #act_sut=check_gw(sut)
     res=make_res_array(sut)
-    ping_async_test(res)
+    #ping_async_test(res)
+    iperf_test(res)
     
 
 if __name__ == "__main__":
