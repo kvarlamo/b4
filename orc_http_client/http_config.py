@@ -63,10 +63,6 @@ if (clusters):
     for i in range(len(clusters)):
         clusters[i]['switches'] = c.get("api/cluster/%s/commutators?page=1&size=15" % clusters[i]['id'])
 
-#print all gathered dict
-print("BBBBB")
-print(clusters)
-
 # get configured controllers
 controllers=c.get("api/controllers")
 if (controllers):
@@ -93,9 +89,3 @@ c.post('api/controllers',{"name":None,"ip":None,"id":None,"jgroupsPort":7800,"ne
 controllers=c.get('api/controllers')
 clust={"name":"Cluster1","ip":None,"clusterType":"MASTER_SLAVE","id":None,"nodes":controllers, "masterNode": controllers[1],"tagType":"STag_VLAN"}
 c.post('api/clusters',clust)
-
-
-
-#del controller #0
-#c.delete("api/controllers/%s" % controllers[0]['id'])
-
