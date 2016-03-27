@@ -3,6 +3,7 @@ from __future__ import print_function
 import sys
 import requests
 import json
+import time
 import logging
 # IF YOU NEED LOGGING UNCOMMENT THIS
 #try: # for Python 3
@@ -68,6 +69,7 @@ controllers=c.get("api/controllers")
 if (controllers):
     print(controllers)
 
+print(clusters)
 # CODE BELOW DELETES ORC's CONFIGURATION SO MAY BE HARMFUL !!!
 # DELETE all configured clusters
 if (clusters):
@@ -84,8 +86,30 @@ c.post('api/controllers',{"name":None,"ip":None,"id":None,"jgroupsPort":7800,"ne
 c.post('api/controllers',{"name":None,"ip":None,"id":None,"jgroupsPort":7800,"netconfPort":830,"address":"ctl2"})
 c.post('api/controllers',{"name":None,"ip":None,"id":None,"jgroupsPort":7800,"netconfPort":830,"address":"ctl3"})
 
+# Wait untill all the controllers get connected
+#TBD
+
 # GET configured controllers and
 # ADD them to the redundant cluster
 controllers=c.get('api/controllers')
 clust={"name":"Cluster1","ip":None,"clusterType":"MASTER_SLAVE","id":None,"nodes":controllers, "masterNode": controllers[1],"tagType":"STag_VLAN"}
 c.post('api/clusters',clust)
+
+# Wait until cluster[0] become Active
+while True:
+    cluster=c.get('api/clusters')[0]
+    print(cluster['clusterStatus'])
+    if (cluster['clusterStatus'] == 'ACTIVE'):
+        break
+    time.sleep(5)
+
+#Wait until all 4 switches become visible
+while True:
+    switches=c.get('api/cluster/%s/commutators&page=1&size=15' % cluster['id'])
+    print("%s switches in cluster" % len(switches))
+    if (len(switches) == 4):
+        break
+    time.sleep(5)
+
+for sw in switches:
+    print(sw)
