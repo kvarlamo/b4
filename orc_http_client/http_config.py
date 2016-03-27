@@ -35,8 +35,12 @@ class CtlAPI:
         print("POST %s%s %s " % (self.baseurl, self.url, self.request), end="")
         self.r = self.client.post(self.baseurl + self.url, data=self.request, headers={"content-type": "application/json;charset=utf-8", 'X-CSRF-TOKEN': self.csrf})
         print("HTTP_Resp:%s" % self.r.status_code)
-    def put(self, url, request):
-        pass
+    def delete(self, url):
+        self.url = url
+        self.get_csrf_token()
+        print("DELETE %s%s " % (self.baseurl, self.url), end="")
+        self.r = self.client.delete(self.baseurl + self.url, headers={"content-type": "application/json;charset=utf-8", 'X-CSRF-TOKEN': self.csrf})
+        print("HTTP_Resp:%s %s" % (self.r.status_code, self.r.text))
     def get(self, url):
         self.url = url
         self.get_csrf_token()
@@ -52,15 +56,46 @@ class CtlAPI:
         print("Token:%s" % self.csrf)
 
 c = CtlAPI('http://10.7.1.101:8080/', 'admin', 'admin')
-#c.post('api/controllers',{"name":None,"ip":None,"id":None,"jgroupsPort":7800,"netconfPort":830,"address":"ctl1"})
-#c.post('api/controllers',{"name":None,"ip":None,"id":None,"jgroupsPort":7800,"netconfPort":830,"address":"ctl2"})
-#c.post('api/controllers',{"name":None,"ip":None,"id":None,"jgroupsPort":7800,"netconfPort":830,"address":"ctl3"})
-#controllers=c.get('api/controllers')
-#clust={"name":"Cluster1","ip":None,"clusterType":"MASTER_SLAVE","id":None,"nodes":controllers, "masterNode": controllers[1],"tagType":"STag_VLAN"}
-#c.post('api/clusters',clust)
+
+# get all clusters and switches
 clusters=c.get('api/clusters')
+if (clusters):
+    for i in range(len(clusters)):
+        clusters[i]['switches'] = c.get("api/cluster/%s/commutators?page=1&size=15" % clusters[i]['id'])
+
+#print all gathered dict
+print("BBBBB")
 print(clusters)
-print(clusters[0]['id'])
-switches=c.get("api/cluster/%s/commutators?page=1&size=15" % clusters[0]['id'])
-print(switches)
+
+# get configured controllers
+controllers=c.get("api/controllers")
+if (controllers):
+    print(controllers)
+
+# CODE BELOW DELETES ORC's CONFIGURATION SO MAY BE HARMFUL !!!
+# DELETE all configured clusters
+if (clusters):
+    for cluster in clusters:
+        c.delete("api/clusters/%s" % cluster['id'])
+
+# DELETE all configured controllers
+if (controllers):
+    for controller in controllers:
+        c.delete("api/controllers/%s" % controller['id'])
+
+# CREATE CONTROLLERS
+c.post('api/controllers',{"name":None,"ip":None,"id":None,"jgroupsPort":7800,"netconfPort":830,"address":"ctl1"})
+c.post('api/controllers',{"name":None,"ip":None,"id":None,"jgroupsPort":7800,"netconfPort":830,"address":"ctl2"})
+c.post('api/controllers',{"name":None,"ip":None,"id":None,"jgroupsPort":7800,"netconfPort":830,"address":"ctl3"})
+
+# GET configured controllers and
+# ADD them to the redundant cluster
+controllers=c.get('api/controllers')
+clust={"name":"Cluster1","ip":None,"clusterType":"MASTER_SLAVE","id":None,"nodes":controllers, "masterNode": controllers[1],"tagType":"STag_VLAN"}
+c.post('api/clusters',clust)
+
+
+
+#del controller #0
+#c.delete("api/controllers/%s" % controllers[0]['id'])
 
