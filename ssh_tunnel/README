@@ -1,3 +1,4 @@
 #Commands to configure server side of SSH tunnel
+apt-get install autossh
 ssh-keygen -t rsa
 ssh-copy-id -p 221 tunnel@server.pro
