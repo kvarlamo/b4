@@ -1,7 +1,8 @@
 # On client side of SSH tunnel
 apt-get install autossh
 ssh-keygen -t rsa
-ssh-copy-id -p NN tunnel@SERVER
+ssh-copy-id -p 21 tunnel@108.61.198.126
+ssh-copy-id -p 21 tunnel@62.76.191.179
 
 # On server side we run a resource-limited docker with sshd
 # 1. get Dockerfile
