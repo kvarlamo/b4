@@ -63,7 +63,7 @@ class CtlAPI:
         print("Token:%s" % self.csrf)
 
 c = CtlAPI('http://10.7.1.101:8080/', 'admin', 'admin')
-"""
+
 # get all clusters and switches
 clusters=c.get('api/clusters')
 if (clusters):
@@ -77,6 +77,7 @@ if (controllers):
 
 print(clusters)
 # CODE BELOW DELETES ORC's CONFIGURATION SO MAY BE HARMFUL !!!
+#"""
 # DELETE all configured clusters
 if (clusters):
     for cluster in clusters:
@@ -105,7 +106,7 @@ while True:
 controllers=c.get('api/controllers')
 clust={"name":"Cluster1","ip":None,"clusterType":"MASTER_SLAVE","id":None,"nodes":controllers, "masterNode": controllers[1],"tagType":"STag_VLAN"}
 c.post('api/clusters',clust)
-"""
+#"""
 # Wait until cluster[0] become Active
 while True:
     cluster=c.get('api/clusters')[0]
@@ -127,20 +128,65 @@ for i in range(len(switches['content'])):
     if (switches['content'][i]['status'] == 'INACTIVE'):
         c.put("api/cluster/%s/commutators/enable/%s" % (cluster['id'],switches['content'][i]['id']), None)
 
-# Show switches' MAC addresses
+#Wait until all switches become activated
+while True:
+    i = 0
+    switches=c.get('api/cluster/%s/commutators?page=1&size=15' % cluster['id'])
+    for k in switches['content']:
+        if (k['status'] == 'ACTIVE'):
+            i += 1
+    if i == len(switches['content']):
+        break
+    time.sleep(5)
+
+# Show switches' MAC addresses and IDs
 # Useful to copy-paste below for renaming
 print("Switch MAC addresses are:")
 for i in range(len(switches['content'])):
-    print(switches['content'][i]['mac'])
+    print( "%s  %s" % (switches['content'][i]['mac'],switches['content'][i]['id']))
 
-# switch names to MAC mapping for renaming
-sw_names={'00:e0:ed:2f:51:f8': 'HQ',
-          '00:e0:ed:2a:74:e6': 'BR1',
-          '00:e0:ed:2e:4e:e0': 'BR2',
-          '00:e0:ed:2f:52:04': 'BR3'}
+
+# Define array of Service ifaces and names
+swcfg = {
+    'HQ': {'mac': '00:e0:ed:2f:51:f8', 'sis': [{"name":"p6p1", "vlan":11}]},
+    'BR1': {'mac': '00:e0:ed:2a:74:e6', 'sis': [{"name": "p6p1", "vlan": 21}]},
+    'BR2': {'mac': '00:e0:ed:2e:4e:e0', 'sis': [{"name": "p6p1", "vlan": 31}]},
+    'BR3': {'mac': '00:e0:ed:2f:52:04', 'sis': [{"name": "p6p1", "vlan": 41}]}
+}
+
+# add IDs to swcfg
+for i in range(len(switches['content'])):
+    for k in swcfg:
+        if swcfg[k]['mac'] == switches['content'][i]['mac']:
+            swcfg[k]['id'] = switches['content'][i]['id']
+
+# add port and tag types to sis
+for i in swcfg:
+    for k in range(len(swcfg[i]['sis'])):
+        for l in switches['content']:
+            if l['id'] == swcfg[i]['id']:
+                for m in l['classifiedPortUnknown']:
+                    if m['name'] == swcfg[i]['sis'][k]['name']:
+                        swcfg[i]['sis'][k]['port'] = m['number']
+                        if swcfg[i]['sis'][k]['vlan']:
+                            swcfg[i]['sis'][k]["tagType"]="VLAN"
+print(swcfg)
+
 
 # rename switches which have MAC equal to name
 for i in range(len(switches['content'])):
     if (switches['content'][i]['name'] == switches['content'][i]['mac']):
-        switches['content'][i]['name'] = sw_names[switches['content'][i]['mac']]
-        c.put("api/cluster/%s/commutators" % cluster['id'], switches['content'][i])
+        for swname in swcfg:
+            if switches['content'][i]['mac'] == swcfg[swname]['mac']:
+                switches['content'][i]['name'] = swname
+                c.put("api/cluster/%s/commutators" % cluster['id'], switches['content'][i])
+
+# Add service interfaces
+for i in swcfg:
+    c.put("api/cluster/%s/commutators/%s/ports" % (cluster['id'],swcfg[i]['id']), swcfg[i]['sis'])
+
+# Add QoS rule
+c.post('api/cluster/%s/qos/cos' % cluster['id'],{"mappingRows":[{"name":"Real Time","externalTag":[4,5,6,7],"pcp":5,"queueId":5,"kOver":1,"bestEffort":False},{"name":"Business Critical","externalTag":[1,2,3],"pcp":3,"queueId":3,"kOver":1,"bestEffort":False},{"name":"Best Effort","externalTag":[0],"pcp":0,"queueId":0,"bestEffort":True}],"id":None,"accessQueueId":5,"maxReserveBandwidth":75})
+if len(c.get('api/cluster/%s/qos?page=1&size=15' % cluster['id']))==0:
+    c.post('api/cluster/%s/qos/cos' % cluster['id'],{"name":"QoS1","mbr":1,"TrafficType":None,"id":None,"percents":[50,20,30],"qosType":True})
+
