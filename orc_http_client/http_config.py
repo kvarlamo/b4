@@ -140,7 +140,7 @@ while True:
     time.sleep(5)
 
 # Show switches' MAC addresses and IDs
-# Useful to copy-paste below for renaming
+# Useful to copy-paste for further renaming
 print("Switch MAC addresses are:")
 for i in range(len(switches['content'])):
     print( "%s  %s" % (switches['content'][i]['mac'],switches['content'][i]['id']))
@@ -187,6 +187,6 @@ for i in swcfg:
 
 # Add QoS rule
 c.post('api/cluster/%s/qos/cos' % cluster['id'],{"mappingRows":[{"name":"Real Time","externalTag":[4,5,6,7],"pcp":5,"queueId":5,"kOver":1,"bestEffort":False},{"name":"Business Critical","externalTag":[1,2,3],"pcp":3,"queueId":3,"kOver":1,"bestEffort":False},{"name":"Best Effort","externalTag":[0],"pcp":0,"queueId":0,"bestEffort":True}],"id":None,"accessQueueId":5,"maxReserveBandwidth":75})
-if len(c.get('api/cluster/%s/qos?page=1&size=15' % cluster['id']))==0:
-    c.post('api/cluster/%s/qos/cos' % cluster['id'],{"name":"QoS1","mbr":1,"TrafficType":None,"id":None,"percents":[50,20,30],"qosType":True})
+c.post('api/cluster/%s/qos' % cluster['id'],{"name":"QoS1","mbr":1,"TrafficType":None,"id":None,"percents":[50,20,30],"qosType":True})
+
 
