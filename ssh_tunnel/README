@@ -1,5 +1,5 @@
 # On client side of SSH tunnel
-apt-get install autossh
+apt-get install autossh screen
 ssh-keygen -t rsa
 ssh-copy-id -p 21 tunnel@108.61.198.126
 ssh-copy-id -p 21 tunnel@62.76.191.179
