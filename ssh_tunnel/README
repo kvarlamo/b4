@@ -14,3 +14,5 @@ docker exec -it sshd bash
 echo GatewayPorts yes >> /etc/ssh/sshd_config
 useradd -m -s /bin/bash tunnel
 passwd tunnel
+exit
+docker restart sshd
