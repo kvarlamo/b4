@@ -1,4 +1,15 @@
-#Commands to configure server side of SSH tunnel
+# On client side of SSH tunnel
 apt-get install autossh
 ssh-keygen -t rsa
-ssh-copy-id -p 221 tunnel@server.pro
+ssh-copy-id -p NN tunnel@SERVER
+
+# On server side we run a resource-limited docker with sshd
+# 1. get Dockerfile
+# 2. Build it
+docker build -t eg_sshd .
+# 3. Run instance of eg_sshd with appropriate limits
+docker run -d -p 22:22 -p 21:22 -p 2222-2240:2222-2240 -h tk-ssh -m 128m --cpu-quota=10000 --cpu-period=100000 --name sshd --restart=always eg_sshd 
+# 4. configure user and password
+docker exec -it sshd bash
+useradd -m -s /bin/bash tunnel
+passwd tunnel
