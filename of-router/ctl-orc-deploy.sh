@@ -1,12 +1,13 @@
-#docker pull mongo
-#docker pull brain4net/ctlsp-v1
-#docker pull brain4net/orc-v1
-#docker rm -f -v dbs ctl orc
-#docker run -d --net=host --restart=always --log-opt max-size=100m --name=dbs mongo mongod --replSet b4nrs
-#grep -m 1 "waiting for connections on port" <(docker logs -f dbs) >> /dev/null
-#grep -m 1 "transition to primary complete; database writes are now permitted" <(docker logs -f dbs) >> /dev/null
-#docker run -d --net=host --restart=always --log-opt max-size=100m --volumes-from dbs -e JAVA_OPTS='-Dmongo.host=127.0.0.1 -Dmongo.port=27017' --name ctl -h ctl brain4net/ctlsp-v1
-#docker run -d --net=host --restart=always --log-opt max-size=100m --volumes-from dbs -e JAVA_OPTS='-Dspring.data.mongodb.host=127.0.0.1' --name orc -h orc brain4net/orc-v1
+docker pull mongo
+docker pull brain4net/ctlsp-v1
+docker pull brain4net/orc-v1
+docker rm -f -v dbs ctl orc
+docker run -d --net=host --restart=always --log-opt max-size=100m --name=dbs mongo mongod --replSet b4nrs
+grep -m 1 "waiting for connections on port" <(docker logs -f dbs) >> /dev/null
+docker exec dbs mongo --eval 'rs.initiate({_id:"b4nrs", members: [{"_id":1, "host":"127.0.0.1:27017"}]})'
+grep -m 1 "transition to primary complete; database writes are now permitted" <(docker logs -f dbs) >> /dev/null
+docker run -d --net=host --restart=always --log-opt max-size=100m --volumes-from dbs -e JAVA_OPTS='-Dmongo.host=127.0.0.1 -Dmongo.port=27017' --name ctl -h ctl brain4net/ctlsp-v1
+docker run -d --net=host --restart=always --log-opt max-size=100m --volumes-from dbs -e JAVA_OPTS='-Dspring.data.mongodb.host=127.0.0.1' --name orc -h orc brain4net/orc-v1
 ip link add dev le1sp type veth peer name sple1
 ip link add dev le2sp type veth peer name sple2
 ip link add dev le3sp type veth peer name sple3
