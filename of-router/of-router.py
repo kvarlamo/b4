@@ -3,6 +3,8 @@ import subprocess
 import re
 
 switches={}
+nhops={'10.0.102.2':{'switch':'le2','port':100, 'vlan':None, 'cemac':'0001.00ff.2102', 'pemac':'0001.00ff.1102'},'10.0.103.2':{'switch':'le3','port':100,'vlan':None, 'cemac':'0001.00ff.3102', 'pemac':'0001.00ff.1102'},'10.0.104.2':{'switch':'le4','port':100,'vlan':None, 'cemac':'0001.00ff.3102', 'pemac':'0001.00ff.1102'}}
+
 def discover_switches():
    groups=[]
    for ins in subprocess.check_output("ovs-vsctl -f json -d json show", shell=True).decode("utf-8").splitlines():
@@ -50,10 +52,16 @@ def get_mpls(switch , port, vlan):
     if trlabel and slabel:
         return([trlabel,slabel])
 
+def resolve_nhops():
+    for i in nhops:
+        nhops[i]['labels']=get_mpls(nhops[i]['switch'],nhops[i]['port'],nhops[i]['vlan'])
+        
+
 def main():
     sw=discover_switches()
     print sw
-    print get_mpls('le1',100,102)
+    resolve_nhops()
+    print nhops
 
 if __name__ == "__main__":
    try:
