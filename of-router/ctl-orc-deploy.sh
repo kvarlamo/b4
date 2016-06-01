@@ -49,12 +49,14 @@ ovs-vsctl set-fail-mode le1 secure
 ovs-vsctl set-fail-mode le2 secure
 ovs-vsctl set-fail-mode le3 secure
 ovs-vsctl set-fail-mode le4 secure
+ovs-vsctl set-fail-mode le5 secure
 ovs-vsctl set bridge sp datapath_type=netdev
 ovs-vsctl set bridge le1 datapath_type=netdev
 ovs-vsctl set bridge le2 datapath_type=netdev
 ovs-vsctl set bridge le3 datapath_type=netdev
 ovs-vsctl set bridge le4 datapath_type=netdev
 ovs-vsctl set bridge le5 datapath_type=netdev
+systemctl restart openvswitch
 ovs-vsctl --may-exist add-port sp sple1 -- set interface sple1 ofport_request=1
 ovs-vsctl --may-exist add-port sp sple2 -- set interface sple2 ofport_request=2
 ovs-vsctl --may-exist add-port sp sple3 -- set interface sple3 ofport_request=3
