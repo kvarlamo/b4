@@ -115,11 +115,17 @@ screen -S OF-ROUTER -t RVNF-qemu -d -m qemu-system-x86_64 \
 -serial telnet::9011,server,nowait \
 -serial telnet::9111,server,nowait \
 -net nic,model=virtio,macaddr=00:01:00:ff:11:01,vlan=0 -net tap,ifname=tap-rvnf1-m,vlan=0,script=no,downscript=no \
--net nic,model=virtio,macaddr=00:01:00:ff:11:02,vlan=101 -net tap,ifname=tap-rvnf1-g0,vlan=101,script=no,downscript=no
+-net nic,model=virtio,macaddr=00:01:00:ff:11:02,vlan=101 -net tap,ifname=tap-rvnf1-g0,vlan=101,script=no,downscript=no \
+-net nic,model=virtio,macaddr=00:01:00:ff:11:03,vlan=102 -net tap,ifname=tap-rvnf1-g1,vlan=102,script=no,downscript=no
 screen -X -S OF-ROUTER title RVNF-qemu
 sleep 1
 ovs-vsctl --may-exist add-port le1 tap-rvnf1-g0 -- set interface tap-rvnf1-g0 ofport_request=100
 ip link set tap-rvnf1-g0 up
+brctl addbr rvnf-infra
+brctl addif rvnf-infra tap-rvnf1-g1
+ip link set tap-rvnf1-g1 up
+ip link set rvnf-infra up
+ip addr add 10.0.202.1/24 dev rvnf-infra
 
 screen -S OF-ROUTER -t CE2-qemu -X screen qemu-system-x86_64 \
 -nographic -m 4096 \
