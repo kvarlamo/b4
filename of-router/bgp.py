@@ -9,7 +9,7 @@ from ryu.services.protocols.bgp.bgpspeaker import RF_VPN_V4
 
 def main():
   self = dict(
-      as_number=65000,
+      as_number=1,
       router_id='192.0.2.1',
       bgp_server_port=179,
       refresh_stalepath_time=0,
@@ -21,8 +21,8 @@ def main():
       label_range=(100, 100000))
 
   neighbor = dict(
-      address='192.0.2.2',
-      remote_as=65000,
+      address='10.0.202.2',
+      remote_as=1,
       enable_ipv4=True,
       enable_vpnv4=True,
       enable_enhanced_refresh=False,
