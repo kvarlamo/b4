@@ -1,14 +1,12 @@
-docker pull mongo
-docker pull brain4net/ctlsp-v1
-docker pull brain4net/orc-v1
-docker rm -f -v dbs ctl orc
-docker run -d --net=host --restart=always --log-opt max-size=100m --name=dbs mongo mongod --replSet b4nrs
-grep -m 1 "waiting for connections on port" <(docker logs -f dbs) >> /dev/null
-#docker exec dbs mongo --eval 'rs.initiate()'
-docker exec dbs mongo --eval 'rs.initiate({_id:"b4nrs", members: [{"_id":1, "host":"127.0.0.1:27017"}]})'
-grep -m 1 "transition to primary complete; database writes are now permitted" <(docker logs -f dbs) >> /dev/null
-docker run -d --net=host --restart=always --log-opt max-size=100m --volumes-from dbs -e JAVA_OPTS='-Dmongo.host=127.0.0.1 -Dmongo.port=27017' --name ctl -h ctl brain4net/ctlsp-v1
-docker run -d --net=host --restart=always --log-opt max-size=100m --volumes-from dbs -e JAVA_OPTS='-Dspring.data.mongodb.host=127.0.0.1' --name orc -h orc brain4net/orc-v1
+#docker pull mongo
+#docker pull brain4net/ctlsp-v1
+#docker pull brain4net/orc-v1
+#docker rm -f -v dbs ctl orc
+#docker run -d --net=host --restart=always --log-opt max-size=100m --name=dbs mongo mongod --replSet b4nrs
+#grep -m 1 "waiting for connections on port" <(docker logs -f dbs) >> /dev/null
+#grep -m 1 "transition to primary complete; database writes are now permitted" <(docker logs -f dbs) >> /dev/null
+#docker run -d --net=host --restart=always --log-opt max-size=100m --volumes-from dbs -e JAVA_OPTS='-Dmongo.host=127.0.0.1 -Dmongo.port=27017' --name ctl -h ctl brain4net/ctlsp-v1
+#docker run -d --net=host --restart=always --log-opt max-size=100m --volumes-from dbs -e JAVA_OPTS='-Dspring.data.mongodb.host=127.0.0.1' --name orc -h orc brain4net/orc-v1
 ip link add dev le1sp type veth peer name sple1
 ip link add dev le2sp type veth peer name sple2
 ip link add dev le3sp type veth peer name sple3
@@ -97,3 +95,78 @@ ovs-vsctl set-controller le2 tcp:127.0.0.1:6653
 ovs-vsctl set-controller le3 tcp:127.0.0.1:6653
 ovs-vsctl set-controller le4 tcp:127.0.0.1:6653
 ovs-vsctl set-controller le5 tcp:127.0.0.1:6653
+
+screen -X -S OF-ROUTER kill
+screen -X -S OF-ROUTER kill
+screen -X -S OF-ROUTER kill
+screen -X -S OF-ROUTER kill
+screen -X -S OF-ROUTER kill
+screen -X -S OF-ROUTER kill
+screen -X -S OF-ROUTER kill
+screen -X -S OF-ROUTER kill
+sleep 2
+
+screen -S OF-ROUTER -t RVNF-qemu -d -m qemu-system-x86_64 \
+-nographic -m 4096 \
+-hda /opt/xrv-kvarlamo/ios_xr.vmdk \
+-serial telnet::9011,server,nowait \
+-serial telnet::9111,server,nowait \
+-net nic,model=virtio,macaddr=00:01:00:ff:11:01,vlan=0 -net tap,ifname=tap-rvnf1-m,vlan=0,script=no,downscript=no \
+-net nic,model=virtio,macaddr=00:01:00:ff:11:02,vlan=101 -net tap,ifname=tap-rvnf1-g0,vlan=101,script=no,downscript=no
+screen -X -S OF-ROUTER title RVNF-qemu
+sleep 1
+ovs-vsctl --may-exist add-port le1 tap-rvnf1-g0 -- set interface tap-rvnf1-g0 ofport_request=100
+ip link set tap-rvnf1-g0 up
+
+screen -S OF-ROUTER -t CE2-qemu -X screen qemu-system-x86_64 \
+-nographic -m 4096 \
+-hda /opt/xrv-kvarlamo/ios_xr2.vmdk \
+-serial telnet::9021,server,nowait \
+-serial telnet::9121,server,nowait \
+-net nic,model=virtio,macaddr=00:01:00:ff:21:01,vlan=0 -net tap,ifname=tap-ce2-m,vlan=0,script=no,downscript=no \
+-net nic,model=virtio,macaddr=00:01:00:ff:21:02,vlan=101 -net tap,ifname=tap-ce2-g0,vlan=101,script=no,downscript=no
+screen -X -S OF-ROUTER title CE2-qemu
+sleep 1
+ovs-vsctl --may-exist add-port le2 tap-ce2-g0 -- set interface tap-ce2-g0 ofport_request=100
+ip link set tap-ce2-g0 up
+
+
+screen -S OF-ROUTER -t CE3-qemu -X screen qemu-system-x86_64 \
+-nographic -m 4096 \
+-hda /opt/xrv-kvarlamo/ios_xr3.vmdk \
+-serial telnet::9031,server,nowait \
+-serial telnet::9131,server,nowait \
+-net nic,model=virtio,macaddr=00:01:00:ff:31:01,vlan=0 -net tap,ifname=tap-ce3-m,vlan=0,script=no,downscript=no \
+-net nic,model=virtio,macaddr=00:01:00:ff:31:02,vlan=101 -net tap,ifname=tap-ce3-g0,vlan=101,script=no,downscript=no
+screen -X -S OF-ROUTER title CE3-qemu
+sleep 1
+ovs-vsctl --may-exist add-port le3 tap-ce3-g0 -- set interface tap-ce3-g0 ofport_request=100
+ip link set tap-ce3-g0 up
+
+screen -S OF-ROUTER -t CE4-qemu -X screen qemu-system-x86_64 \
+-nographic -m 4096 \
+-hda /opt/xrv-kvarlamo/ios_xr4.vmdk \
+-serial telnet::9041,server,nowait \
+-serial telnet::9141,server,nowait \
+-net nic,model=virtio,macaddr=00:01:00:ff:41:01,vlan=0 -net tap,ifname=tap-ce4-m,vlan=0,script=no,downscript=no \
+-net nic,model=virtio,macaddr=00:01:00:ff:41:02,vlan=101 -net tap,ifname=tap-ce4-g0,vlan=101,script=no,downscript=no
+screen -X -S OF-ROUTER title CE4-qemu
+sleep 1
+ovs-vsctl --may-exist add-port le4 tap-ce4-g0 -- set interface tap-ce4-g0 ofport_request=100
+ip link set tap-ce4-g0 up
+
+
+screen -S OF-ROUTER -t RVNF1-telnet -X screen telnet 127.0.0.1 9011
+screen -X -S OF-ROUTER title RVNF1-telnet
+screen -S OF-ROUTER -t CE2-telnet -X screen telnet 127.0.0.1 9021
+screen -X -S OF-ROUTER title CE2-telnet
+screen -S OF-ROUTER -t CE3-telnet -X screen telnet 127.0.0.1 9031
+screen -X -S OF-ROUTER title CE3-telnet
+screen -S OF-ROUTER -t CE4-telnet -X screen telnet 127.0.0.1 9041
+screen -X -S OF-ROUTER title CE4-telnet
+echo "************"
+echo "You can attach all-in-one screen anytime with command below:"
+echo "screen -x OF-ROUTER"
+echo "Press any key to attach now or Ctrl-C to return to shell"
+read
+screen -x OF-ROUTER
