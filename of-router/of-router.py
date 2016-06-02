@@ -1,9 +1,50 @@
 #!/usr/bin/env python
 import subprocess
 import re
+from pprint import pprint
+import eventlet, json
+eventlet.monkey_patch()
+from ryu.services.protocols.bgp.bgpspeaker import BGPSpeaker
+
 
 switches={}
 nhops={'10.0.102.2':{'switch':'le2','port':100, 'vlan':None, 'cemac':'0001.00ff.2102', 'pemac':'0001.00ff.1102'},'10.0.103.2':{'switch':'le3','port':100,'vlan':None, 'cemac':'0001.00ff.3102', 'pemac':'0001.00ff.1102'},'10.0.104.2':{'switch':'le4','port':100,'vlan':None, 'cemac':'0001.00ff.3102', 'pemac':'0001.00ff.1102'}}
+
+def bpchange(e):
+    if not e['is_withdraw']:
+        print "add %s via %s" % (e['prefix'],e['nexthop'])
+    else:
+        print "rem %s via %s" % (e['prefix'],e['nexthop'])
+
+self = dict(
+      as_number=1,
+      router_id='192.0.2.1',
+      bgp_server_port=179,
+      refresh_stalepath_time=0,
+      refresh_max_eor_time=0,
+      best_path_change_handler=lambda m: bpchange(vars(m)),
+      #best_path_change_handler=lambda m: pprint(vars(m)),
+      peer_down_handler=lambda ip, asn: pprint('Peer down: %(ip)s from %(asn)s' % locals()),
+      peer_up_handler=None,
+      ssh_console=False,
+      label_range=(100, 100000))
+
+neighbor = dict(
+      address='10.0.202.2',
+      remote_as=1,
+      enable_ipv4=True,
+      enable_enhanced_refresh=False,
+      next_hop=None,
+      password=None,
+      multi_exit_disc=None,
+      site_of_origins=None,
+      is_route_server_client=False,
+      is_next_hop_self=True,
+      local_address=None,
+      local_port=None,
+      connect_mode='both')
+
+
 
 def discover_switches():
    groups=[]
@@ -62,6 +103,10 @@ def main():
     print sw
     resolve_nhops()
     print nhops
+    speaker = BGPSpeaker(**self)
+    speaker.neighbor_add(**neighbor)
+    while True:
+        eventlet.sleep(10)
 
 if __name__ == "__main__":
    try:
